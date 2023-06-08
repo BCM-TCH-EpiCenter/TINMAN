@@ -21,7 +21,7 @@ metab <- readRDS('TINMAN_merged_feces_raw_data.rds')
 metab <- metab %>% mutate_at(all_of(endogenous), ~ ifelse(is.na(.x), min(.x, na.rm = T)/2, .x))
 
 saveRDS(metab, 
-        'TINMAN_merged_metab_unscaled_20230606.rds')
+        'TINMAN_merged_metab_imputed_unscaled_20230606.rds')
 
 #' Autoscale the imputed data (subtract the mean and divide by the SD).            
 for (i in 2:ncol(metab)){
@@ -34,4 +34,4 @@ for (i in 2:ncol(metab)){
 }
 
 saveRDS(metab,
-        'TINMAN_merged_metab_20230606.rds')
+        'TINMAN_merged_metab_imputed_autoscaled_20230606.rds')
