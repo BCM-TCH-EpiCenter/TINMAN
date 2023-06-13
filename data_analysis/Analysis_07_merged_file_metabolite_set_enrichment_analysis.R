@@ -28,15 +28,19 @@ require(tidyverse)
 
 setwd('//smb-main.ad.bcm.edu/genepi3/JeremySchraw/TINMAN/Datasets/')
 
-#' Concentration table
-tinman <- readRDS('TINMAN_merged_20230606.rds') %>% 
-  filter(str_detect(GROUP_ID, 'POST'))
+#' Clinical metadata
+clinical.metadata <- readRDS('TINMAN_merged_clinical_data.rds')
 
-#' Metabolite names
+#' Metabolites to include in the input files.
 metabs <- readRDS('TINMAN_merged_feces_metadata.rds') %>% 
-  filter(!is.na(HMDB), SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal'))
+  filter(!is.na(HMDB), SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal')) 
 
-tinman.msea <- tinman %>% select(PARENT_SAMPLE_NAME, GROUP_NAME, all_of(metabs$CHEM_ID))
+#' Concentration table
+tinman <- readRDS('TINMAN_merged_metab_imputed_autoscaled_20230606.rds') %>% 
+  left_join(select(clinical.metadata, PARENT_SAMPLE_NAME, GROUP_NAME, GROUP_ID), by = 'PARENT_SAMPLE_NAME')
+
+tinman.msea <- tinman %>% 
+  select(PARENT_SAMPLE_NAME, GROUP_NAME, all_of(metabs$CHEM_ID))
 
 names(tinman.msea) <- c(names(tinman.msea)[1:2], metabs$HMDB)
 
@@ -51,8 +55,30 @@ names(tinman.msea) <- names(tinman.msea) %>%
 names(tinman.msea) <- case_when(names(tinman.msea) == 'HMDB0029155' ~ 'HMDB34367',
                                 .default = names(tinman.msea))
 
-# Create MSEA data table.
-write_csv(tinman.msea, 'TINMAN_merged_MSEA_input_data_20230608.csv')
+#' In some instances, different chem_ids evidently have the same HMDB ID.
+dups <- which(duplicated(names(tinman.msea)))
+
+tinman.msea <- tinman.msea %>% 
+  select(-dups)
+
+#' Create MSEA input files for pre- and post-treatment periods.
+pre <- post <- clinical.metadata %>% 
+  filter(str_detect(GROUP_ID, 'PRE')) %>% 
+  pull(PARENT_SAMPLE_NAME)
+
+post <- clinical.metadata %>% 
+  filter(str_detect(GROUP_ID, 'POST')) %>% 
+  pull(PARENT_SAMPLE_NAME)
+
+post.msea <- tinman.msea %>% 
+  filter(PARENT_SAMPLE_NAME %in% post)
+
+pre.msea <- tinman.msea %>% 
+  filter(PARENT_SAMPLE_NAME %in% pre)
+
+# Create MSEA data tableS.
+write_csv(pre.msea, 'TINMAN_merged_MSEA_pretreatment_input_data_20230608.csv')
+write_csv(post.msea, 'TINMAN_merged_MSEA_posttreatment_input_data_20230608.csv')
 
 # Run MSEA ----------------------------------------------------------------
 
