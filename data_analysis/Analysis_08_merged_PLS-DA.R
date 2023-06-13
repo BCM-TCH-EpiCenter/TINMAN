@@ -1,17 +1,24 @@
-require(tidyverse); require(mixOmics); require(xlsx)
+# Prepare data ------------------------------------------------------------
+require(tidyverse); require(xlsx)
 
 setwd('//smb-main.ad.bcm.edu/genepi3/JeremySchraw/TINMAN/Datasets/')
-
-#' Concentration table
-tinman <- readRDS('TINMAN_merged_20230606.rds')
 
 #' Metabolite metadata
 metabs <- readRDS('TINMAN_merged_feces_metadata.rds') %>% 
   filter(SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal')) %>% 
   pull(CHEM_ID)
 
+#' Concentration table
+tinman <- readRDS('TINMAN_merged_metab_imputed_autoscaled_20230606.rds') %>% 
+  select(PARENT_SAMPLE_NAME, all_of(metabs))
+
+#' Clinical metadata.
+clinical.metadata <- readRDS('TINMAN_merged_clinical_data.rds')
+
 #' Remove xenobiotics, except for bacterial/fungal metabolites..
-tinman <- tinman %>% dplyr::select(PARENT_SAMPLE_NAME:GROUP_NAME, all_of(metabs))
+tinman <- tinman %>% 
+  left_join(select(clinical.metadata, PARENT_SAMPLE_NAME:GROUP_NAME), by = 'PARENT_SAMPLE_NAME') %>% 
+  select(PARENT_SAMPLE_NAME, GROUP_ID, GROUP_NAME, all_of(metabs))
 
 # Matrix of metabolite abundances (x) and class memberships (y) needs for sparse PLS-DA.
 x <- as.matrix(tinman[,4:ncol(tinman)])
@@ -34,6 +41,10 @@ y <- as.factor(tinman$GROUP_ID)
 #select.keepX <- tune.splsda.srbct$choice.keepX[1:ncomp]  # optimal number of variables to select
 #select.keepX
 
+# Perform PLS-DA ----------------------------------------------------------
+
+require(mixOmics)
+
 MyResult.splsda.final <- splsda(x, y, ncomp = 2, keepX = c(50,50))
 
 my.plot <- plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
@@ -49,7 +60,7 @@ comp2.loadings <- selectVar(MyResult.splsda.final, comp=2)$value %>%
   mutate(CHEM_ID = rownames(.))
 
 #' Save plots
-svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/merged.plsa.da.plot.20230608.svg',
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.plot.20230608.svg',
     width = 10, height = 10)
 
 plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
@@ -57,15 +68,14 @@ plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
 
 dev.off()
 
-svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/merged.plsa.da.comp1.loadings.svg',
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.comp1.loadings.svg',
     width = 10, height = 10)
 
 plotLoadings(MyResult.splsda.final, contrib = 'max', method = 'mean', comp = 1)
 
 dev.off()
 
-#' Save plots
-svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/merged.plsa.da.comp2.loadings.svg',
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.comp2.loadings.svg',
     width = 10, height = 10)
 
 plotLoadings(MyResult.splsda.final, contrib = 'max', method = 'mean', comp = 2)
