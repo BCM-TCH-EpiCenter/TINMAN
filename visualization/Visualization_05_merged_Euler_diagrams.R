@@ -1,4 +1,4 @@
-require(tidyverse); require(eulerr)
+require(tidyverse); require(eulerr); require(VennDiagram)
 
 setwd('//smb-main.ad.bcm.edu/genepi3/JeremySchraw/TINMAN/Datasets/')
 
