@@ -1,21 +1,22 @@
 # Prepare data ------------------------------------------------------------
+
 require(tidyverse); require(xlsx)
 
 setwd('//smb-main.ad.bcm.edu/genepi3/JeremySchraw/TINMAN/Datasets/')
 
 #' Metabolite metadata
 metabs <- readRDS('TINMAN_merged_feces_metadata.rds') %>% 
-  filter(SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal')) %>% 
+  #filter(SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal')) %>% 
   pull(CHEM_ID)
 
-#' Concentration table
-tinman <- readRDS('TINMAN_merged_metab_imputed_autoscaled_20230606.rds') %>% 
+#' Concentration table.
+#' Choice of scaled or unscaled data does not impact the algorithm because it performs its own centering and scaling.
+tinman <- readRDS('TINMAN_merged_metab_imputed_unscaled_20230606.rds') %>% 
   select(PARENT_SAMPLE_NAME, all_of(metabs))
 
-#' Clinical metadata.
+#' Load and append clinical metadata.
 clinical.metadata <- readRDS('TINMAN_merged_clinical_data.rds')
 
-#' Remove xenobiotics, except for bacterial/fungal metabolites..
 tinman <- tinman %>% 
   left_join(select(clinical.metadata, PARENT_SAMPLE_NAME:GROUP_NAME), by = 'PARENT_SAMPLE_NAME') %>% 
   select(PARENT_SAMPLE_NAME, GROUP_ID, GROUP_NAME, all_of(metabs))
@@ -48,7 +49,14 @@ require(mixOmics)
 MyResult.splsda.final <- splsda(x, y, ncomp = 2, keepX = c(50,50))
 
 my.plot <- plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
-                     ellipse = TRUE, title="sPLS-DA - final result")
+                     ellipse = TRUE, title="sPLS-DA - final result",
+                     group = y, 
+                     col.per.group = c('red','white','blue','ghostwhite'),
+                     pch = c(16,1,15,2),
+                     cex = c(2,-2,2,-2))
+
+
+my.plot
 
 #' Recover and plot loading vectors for components 1 and 2
 plotLoadings(MyResult.splsda.final, contrib = 'max', method = 'mean', comp = 1)
@@ -60,7 +68,7 @@ comp2.loadings <- selectVar(MyResult.splsda.final, comp=2)$value %>%
   mutate(CHEM_ID = rownames(.))
 
 #' Save plots
-svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.plot.20230608.svg',
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.plot.20230614.svg',
     width = 10, height = 10)
 
 plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
@@ -91,12 +99,12 @@ comp1.loadings <- left_join(comp1.loadings, metabs, by = 'CHEM_ID')
 comp2.loadings <- left_join(comp2.loadings, metabs, by = 'CHEM_ID')
 
 write.xlsx(comp1.loadings,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_PLS-DA_loadings_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_PLS-DA_loadings_20230614.xlsx',
            sheetName = 'component1',
            row.names = F)
 
 write.xlsx(comp2.loadings,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_PLS-DA_loadings_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_PLS-DA_loadings_20230614.xlsx',
            sheetName = 'component2',
            row.names = F,
            append = T)
@@ -104,7 +112,7 @@ write.xlsx(comp2.loadings,
 auc.plsda <- auroc(MyResult.splsda.final)
 
 #' Evaluate overlap between loadings and univariate results
-uni <- read.xlsx('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+uni <- read.xlsx('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
                  sheetIndex = 1,
                  colIndex = 2:13)
 
