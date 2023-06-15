@@ -3,7 +3,7 @@
 require(tidyverse); require(xlsx)
 
 #' Install an overrepresentation analysis package for hypergeometric tests.
-remotes::install_github('CLippmann/ORA')
+#remotes::install_github('CLippmann/ORA')
 
 setwd('//smb-main.ad.bcm.edu/genepi3/JeremySchraw/TINMAN/Datasets/')
 
@@ -24,21 +24,8 @@ univariate.tests <- function(x){
     
     counts <- data %>% count(TIMEPOINT, .drop = F)
     
-    #' If that metabolte was not detected in the index group, mark as missing.
-    if (nrow(data) == 0){
-      
-      result <- tibble(metabolite = metabolites[i],
-                       mean.pre = NA,
-                       mean.post = NA,
-                       t.test.p = NA,
-                       kruskal.test.p = NA)
-      
-      results <- rbind(results, result)
-      
-    }
-    
     #' If it was detected in more than one subject from the index group at each timepoint, calculate the means at baseline and follow up and compare by univariate tests.
-    else if (all(counts$n > 1) & var(data$METABOLITE) != 0){  
+    if (nrow(counts) == 2 & all(counts$n > 1) & var(data$METABOLITE) != 0){  
       
       t.test <- data %>% 
         t.test(METABOLITE ~ TIMEPOINT, data = .)
@@ -51,6 +38,19 @@ univariate.tests <- function(x){
                        mean.post = t.test$estimate[1],
                        t.test.p = t.test$p.value,
                        kruskal.test.p = kruskal.test$p.value)
+      
+      results <- rbind(results, result)
+      
+    }
+    
+    #' If that metabolte was not detected in the index group, mark as missing.
+    else if (nrow(data) == 0){
+      
+      result <- tibble(metabolite = metabolites[i],
+                       mean.pre = NA,
+                       mean.post = NA,
+                       t.test.p = NA,
+                       kruskal.test.p = NA)
       
       results <- rbind(results, result)
       
@@ -93,7 +93,7 @@ tinman <- tinman %>%
   
 #' Metabolites to test.
 metabolites <- metab.metadata %>% 
-  filter(SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal') ) %>% 
+  #filter(SUPER_PATHWAY != 'Xenobiotics' | (SUPER_PATHWAY == 'Xenobiotics' & SUB_PATHWAY == 'Bacterial/Fungal') ) %>% 
   pull(CHEM_ID)
 
 #' Split into control and neutropenic datasets.
@@ -132,7 +132,7 @@ counts <- counts %>%
 names(counts) <- c('metabolite', 'control.n.post', 'control.n.pre', 'neutropenic.n.post', 'neutropenic.n.pre') 
 
 #saveRDS(counts,
-#       'TINMAN_merged_metabolite_detection_counts_20230608.rds')
+#       'TINMAN_merged_metabolite_detection_counts_20230614.rds')
 
 # Perform tests -----------------------------------------------------------
 
@@ -155,7 +155,7 @@ control <- results %>%
   mutate(control.fold.change = ifelse(control.mean.post > control.mean.pre, abs(control.fold.change), 
                                ifelse(control.mean.post < control.mean.pre, abs(control.fold.change)*-1, control.fold.change)))
 
-saveRDS(control, 'TINMAN_merged_control_fold_changes_20230608.rds')
+saveRDS(control, 'TINMAN_merged_control_fold_changes_20230614.rds')
 
 neutropenic <- results %>% 
   select(metabolite, starts_with('neutropenic')) %>% 
@@ -164,7 +164,7 @@ neutropenic <- results %>%
   mutate(neutropenic.fold.change = ifelse(neutropenic.mean.post > neutropenic.mean.pre, abs(neutropenic.fold.change), 
                                    ifelse(neutropenic.mean.post < neutropenic.mean.pre, abs(neutropenic.fold.change)*-1, neutropenic.fold.change)))
 
-saveRDS(neutropenic, 'TINMAN_merged_neutropenic_fold_changes_20230608.rds')
+saveRDS(neutropenic, 'TINMAN_merged_neutropenic_fold_changes_20230614.rds')
 
 # Export results to Excel -------------------------------------------------
 
@@ -197,7 +197,7 @@ results <- bind_rows(control.results, neutropenic.results) %>%
 results <- right_join(metabolite.metadata, results, by = c('CHEM_ID' = 'metabolite'))
 
 write.xlsx(results,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
            sheetName = 'MeanAbundances',
            append = F)
 
@@ -208,7 +208,7 @@ baseline.neutropenic.only <- id.metabolites('neutropenic.n.pre', 'control.n.pre'
 baseline <- bind_rows(baseline.control.only, baseline.neutropenic.only)
 
 write.xlsx(baseline,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
            sheetName = 'Baseline_Between_Groups',
            append = T)
 
@@ -219,7 +219,7 @@ fu.neutropenic.only <- id.metabolites('neutropenic.n.post', 'control.n.post')
 fu <- bind_rows(fu.control.only, fu.neutropenic.only)
 
 write.xlsx(fu,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
            sheetName = 'FollowUp_Between_Groups',
            append = T)
 
@@ -230,7 +230,7 @@ controls.fu.only <- id.metabolites('control.n.post', 'control.n.pre')
 controls <- bind_rows(controls.baseline.only, controls.fu.only)
 
 write.xlsx(controls,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
            sheetName = 'Controls_Between_Timepoints',
            append = T)
 
@@ -240,7 +240,7 @@ neutropenic.fu.only <- id.metabolites('neutropenic.n.post', 'neutropenic.n.pre')
 neutropenic <- bind_rows(neutropenic.baseline.only, neutropenic.fu.only)
 
 write.xlsx(neutropenic,
-           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230608.xlsx',
+           '//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/R_outputs/TINMAN_merged_metabolomics_analysis_20230614.xlsx',
            sheetName = 'Neutropenic_Between_Timepoints',
            append = T)
 
