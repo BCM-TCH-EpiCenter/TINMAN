@@ -247,3 +247,52 @@ pn <- volcano.plotly(neutropenic, 'NEUTROPENIC SUBJECTS') %>%
   ggplotly() %>% 
   saveWidget(file = 'interative_volcano_plot_neutropenic_unscaled_20230614.html',
              selfcontained = T)
+
+# Plots with Josie's custom annotations -----------------------------------
+
+#' These are Metabolon metabolite accession numbers for a handful of species that Josie indicated she wanted highlighted in an email on 6/21/23.
+my.metabs <- c('C391','C100001104', 'C100006435', 'C100000098', 'C925', 'C926', 'C100003239', 'C1221', 'C100001416')
+
+#' Necessitates a tweak to the color variable.
+neutropenic <- neutropenic %>% 
+  mutate(color = ifelse(metabolite %in% my.metabs, 'A', 'B'))
+
+#' A function to generate a customized volcano plot.
+plot <- ggplot(data = neutropenic, aes(x = log2.fold.change, y = -log10(t.test.p))) +
+
+  geom_point(aes(color = color), size = ifelse(neutropenic$color == 'A', 3, 1)) +
+  
+  geom_vline(xintercept = 0, linetype = 'longdash') + 
+  
+  geom_text_repel(aes(label = ifelse(metabolite %in% my.metabs, CHEMICAL_NAME, '')),
+                  size = 3.5, fontface = 'bold',
+                  force = 2,
+                  max.iter = 20000) +
+  
+  annotate('text', x = 5, y = 3.8, label = 'More abundant at follow-up', fontface = 'bold') +
+  annotate('text', x = -5, y = 3.8, label = 'More abundant at baseline', fontface = 'bold') +
+  
+  labs(x = 'Log2 fold change (follow-up/baseline, unscaled values)',
+       y = "-Log10 p-value (Student's t-test)") +
+  
+  scale_x_continuous(limits = c(-8,8),
+                     breaks = c(-8,-6,-4,-2,0,2,4,6,8)) +
+  
+  scale_y_continuous(limits = c(0,4)) +
+  
+  scale_color_manual(values = c('firebrick1', 'cornflowerblue')) +
+  
+  theme_classic() +
+  
+  theme(axis.title = element_text(size = 14, face = 'bold'),
+        axis.text = element_text(size = 12, face = 'bold'),
+        
+        plot.title = element_text(size = 16, face = 'bold'),
+        
+        legend.position = 'none')
+
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/Volcano_plots/volcano_plot_neutropenic_unscaled_20230630.svg', height = 8, width = 8)
+
+print(plot)
+
+dev.off()
