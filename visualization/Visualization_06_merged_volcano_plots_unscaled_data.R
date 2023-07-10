@@ -251,7 +251,8 @@ pn <- volcano.plotly(neutropenic, 'NEUTROPENIC SUBJECTS') %>%
 # Plots with Josie's custom annotations -----------------------------------
 
 #' These are Metabolon metabolite accession numbers for a handful of species that Josie indicated she wanted highlighted in an email on 6/21/23.
-my.metabs <- c('C391','C100001104', 'C100006435', 'C100000098', 'C925', 'C926', 'C100003239', 'C1221', 'C100001416')
+#' (This was later updated to exclude creatine).
+my.metabs <- c('C391','C100001104', 'C100006435', 'C100000098', 'C925', 'C926', 'C100003239', 'C100001416', 'C100021504')
 
 #' Necessitates a tweak to the color variable.
 neutropenic <- neutropenic %>% 
@@ -263,6 +264,8 @@ plot <- ggplot(data = neutropenic, aes(x = log2.fold.change, y = -log10(t.test.p
   geom_point(aes(color = color), size = ifelse(neutropenic$color == 'A', 3, 1)) +
   
   geom_vline(xintercept = 0, linetype = 'longdash') + 
+  
+  geom_hline(yintercept = -log10(0.05), linetype = 'longdash') +
   
   geom_text_repel(aes(label = ifelse(metabolite %in% my.metabs, CHEMICAL_NAME, '')),
                   size = 3.5, fontface = 'bold',
@@ -291,7 +294,7 @@ plot <- ggplot(data = neutropenic, aes(x = log2.fold.change, y = -log10(t.test.p
         
         legend.position = 'none')
 
-svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/Volcano_plots/volcano_plot_neutropenic_unscaled_20230630.svg', height = 8, width = 8)
+svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/Volcano_plots/volcano_plot_neutropenic_unscaled_20230710.svg', height = 8, width = 8)
 
 print(plot)
 
