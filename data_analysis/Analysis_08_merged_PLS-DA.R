@@ -44,6 +44,9 @@ y <- as.factor(tinman$GROUP_ID)
 
 # Perform PLS-DA ----------------------------------------------------------
 
+#' Install mixOmics, if neded.
+#' BiocManager::install('mixOmics')
+
 require(mixOmics)
 
 MyResult.splsda.final <- splsda(x, y, ncomp = 2, keepX = c(50,50))
@@ -54,7 +57,6 @@ my.plot <- plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
                      col.per.group = c('red','white','blue','ghostwhite'),
                      pch = c(16,1,15,2),
                      cex = c(2,-2,2,-2))
-
 
 my.plot
 
@@ -71,8 +73,11 @@ comp2.loadings <- selectVar(MyResult.splsda.final, comp=2)$value %>%
 svg('//smb-main.ad.bcm.edu/genepi/TINMAN/Metabolomics/Figures/PLS-DA/merged.plsa.da.plot.20230614.svg',
     width = 10, height = 10)
 
-plotIndiv(MyResult.splsda.final, ind.names = FALSE, legend=TRUE,
-          ellipse = TRUE, title="sPLS-DA - final result")
+plotIndiv(MyResult.splsda.final, 
+          ind.names = FALSE, 
+          legend=TRUE,
+          ellipse = TRUE, 
+          title="sPLS-DA - final result")
 
 dev.off()
 
